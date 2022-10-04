@@ -2,19 +2,46 @@ package main
 
 import (
 	"fmt"
+	"garrison-stauffer.com/discord-bot/internal/client"
 	"io"
+	"log"
 	"net/http"
+	"time"
 )
 
 func main() {
-	fmt.Println("Hello World")
-	mx := http.NewServeMux()
-	mx.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Received message lul")
-		io.WriteString(w, "Doo doo")
-	})
+	log.Println("Started the server")
+	serverComplete := make(chan error, 1)
 
-	err := http.ListenAndServe(":8080", mx)
+	var srv *http.Server
+	go func() {
+		mx := http.NewServeMux()
 
-	fmt.Printf("Shutting down server %v", err)
+		srv = &http.Server{
+			Addr:    ":8080",
+			Handler: mx,
+		}
+		mx.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+			log.Println("Received message on /ping")
+			io.WriteString(w, "Doo doo")
+		})
+		mx.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
+			log.Println("Received message on /healthcheck")
+			w.WriteHeader(200)
+		})
+
+		err := srv.ListenAndServe()
+		serverComplete <- err
+
+	}()
+
+	fmt.Println("Starting websocket")
+	client.StartWebsocket()
+	srv.Close()
+	select {
+	case <-serverComplete:
+	case <-time.After(time.Second):
+		return
+	}
+	fmt.Println("Websocket terminated, shutting down")
 }
