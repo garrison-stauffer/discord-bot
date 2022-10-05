@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
-	"garrison-stauffer.com/discord-bot/internal/client"
+	"garrison-stauffer.com/discord-bot/discord/client"
+	"garrison-stauffer.com/discord-bot/environment"
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"time"
 )
 
@@ -32,16 +35,39 @@ func main() {
 
 		err := srv.ListenAndServe()
 		serverComplete <- err
-
 	}()
 
 	fmt.Println("Starting websocket")
-	client.StartWebsocket()
-	srv.Close()
-	select {
-	case <-serverComplete:
-	case <-time.After(time.Second):
-		return
+
+	botClient := client.NewClient(
+		client.NewConfig(
+			"wss://gateway.discord.gg/",
+			environment.BotSecret(),
+		),
+	)
+
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+
+	err := botClient.Start()
+	if err != nil {
+		log.Fatalf("could not start bot client: %v", err)
 	}
-	fmt.Println("Websocket terminated, shutting down")
+
+	select {
+	case <-interrupt:
+		log.Println("received interrupt, starting to shut down")
+		err := botClient.Shutdown()
+		if err != nil {
+			log.Printf("error shutting down bot client: %v", err)
+		}
+		srv.Close()
+
+		select {
+		case <-serverComplete:
+		case <-time.After(time.Second):
+			return
+		}
+		log.Println("shutdown complete")
+	}
 }
