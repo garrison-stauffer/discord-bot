@@ -15,5 +15,5 @@ func BotSecret() string {
 }
 
 func BindPort() string {
-	return "8080"
+	return os.Getenv("PORT")
 }
