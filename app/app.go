@@ -24,7 +24,6 @@ func New(discordClient discord.Client, ytClient youtube.Client, botSecret string
 
 func (a *App) Handle(msg gateway.Message) error {
 	log.Println("received dispatch message")
-	log.Println(*msg.Type)
 	switch msg.OpCode {
 	case gateway.OpDispatch:
 		switch *msg.Type {

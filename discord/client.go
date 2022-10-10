@@ -220,6 +220,9 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 		return nil
 	case gateway.OpHeartbeatAck:
 		return nil
+	case gateway.OpReconnect:
+		c.reconnect()
+		return nil
 	case gateway.OpDispatch:
 		switch *msg.Type {
 		case "READY":
