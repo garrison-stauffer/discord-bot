@@ -34,8 +34,9 @@ func NewTimeoutRequest(gId, mId string, botSecret string) (*http.Request, error)
 	return req, nil
 }
 
-func NewRepostReact(cId, mId, react, botSecret string) (*http.Request, error) {
+func NewMusicVideoReact(cId, mId, react, botSecret string) (*http.Request, error) {
 	url := fmt.Sprintf("%s/channels/%s/messages/%s/reactions/%s/@me", "https://discord.com/api", cId, mId, react)
+	fmt.Println("attempting to send repost react to", url)
 	req, err := http.NewRequest("PUT", url, nil)
 	req.Header.Set("Authorization", "Bot "+botSecret)
 	req.Header.Set("User-Agent", "DiscordBot (discord-bot.garrison-stauffer.com, 0.0.1)")

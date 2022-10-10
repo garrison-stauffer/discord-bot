@@ -69,16 +69,16 @@ func (a *App) handleChat(msg chatMessage) error {
 						return fmt.Errorf("error setting user timeout %v", err)
 					} else {
 						foo, _ := io.ReadAll(res.Body)
-						fmt.Printf("received %s", string(foo))
+						fmt.Printf("timeout received %s\n", string(foo))
 					}
 
-					req, err = api.NewRepostReact(msg.ChannelId, msg.Author.Id, "🚨", a.botSecret)
+					req, err = api.NewMusicVideoReact(msg.ChannelId, msg.Id, "🚨", a.botSecret)
 					res, err = http.DefaultClient.Do(req)
 					if err != nil {
 						return fmt.Errorf("error setting user timeout %v", err)
 					} else {
 						foo, _ := io.ReadAll(res.Body)
-						fmt.Printf("received %s", string(foo))
+						fmt.Printf("react received %s\n", string(foo))
 					}
 				} else {
 					log.Println("Huh")
