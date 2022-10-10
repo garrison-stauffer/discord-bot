@@ -24,7 +24,7 @@ func main() {
 		mx := http.NewServeMux()
 
 		srv = &http.Server{
-			Addr:    ":8080",
+			Addr:    fmt.Sprintf(":%s", environment.BindPort()),
 			Handler: mx,
 		}
 		mx.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {

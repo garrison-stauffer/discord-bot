@@ -13,3 +13,7 @@ func BotSecret() string {
 	fmt.Println(s)
 	return s
 }
+
+func BindPort() string {
+	return "8080"
+}
