@@ -23,6 +23,7 @@ func main() {
 	go func() {
 		mx := http.NewServeMux()
 
+		fmt.Println("port used is ", environment.BindPort())
 		srv = &http.Server{
 			Addr:    fmt.Sprintf(":%s", environment.BindPort()),
 			Handler: mx,
