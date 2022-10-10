@@ -1,4 +1,4 @@
-package client
+package discord
 
 import (
 	"encoding/json"
@@ -27,9 +27,10 @@ type clientImpl struct {
 	session          session
 	receivedMessages chan gateway.Message
 	outgoingMessages chan gateway.Message
+	messages         chan<- gateway.Message
 }
 
-func NewClient(config Config) Client {
+func NewClient(config Config, messages chan<- gateway.Message) Client {
 	return &clientImpl{
 		config: config,
 		gatewayConfig: &gatewayConfig{
@@ -40,6 +41,7 @@ func NewClient(config Config) Client {
 		shutdown:         make(chan struct{}),
 		receivedMessages: make(chan gateway.Message),
 		outgoingMessages: make(chan gateway.Message),
+		messages:         messages,
 	}
 }
 
@@ -111,6 +113,7 @@ func (c *clientImpl) readMessages() {
 				log.Println("channel is closed")
 				done = true
 			}
+			fmt.Println(fmt.Sprintf("msg %v", msg))
 			err := c.handle(msg)
 			if err != nil {
 				data, _ := json.Marshal(msg)
@@ -167,6 +170,12 @@ func (c *clientImpl) Send(msg gateway.Message) error {
 }
 
 func (c *clientImpl) handle(msg gateway.Message) error {
+	if msg.Type != nil {
+		log.Printf("handling message %d, %v\n", msg.OpCode, *msg.Type)
+	} else {
+		log.Printf("handling message %d, %v\n", msg.OpCode, msg.Type)
+	}
+
 	if msg.SequenceId != nil {
 		c.gatewayConfig.sequence = msg.SequenceId
 	}
@@ -190,7 +199,6 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 				return
 			}
 
-			// send the Identify call
 			botIntents := intents.BuildIntentPermissions(intents.VoiceStatus, intents.GuildMessageReactions, intents.GuildPresence, intents.GuildMessages, intents.MessageContent)
 			msg = gateway.NewIdentify(botIntents, c.config.botSecretToken)
 			err = c.Send(*msg)
@@ -211,25 +219,20 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 		}()
 		return nil
 	case gateway.OpHeartbeatAck:
-		log.Println("received heartbeat ack")
 		return nil
 	case gateway.OpDispatch:
-		log.Println("received dispatch message")
-
 		switch *msg.Type {
 		case "READY":
 			reconnectUrl, ok := msg.Event["resume_gateway_url"].(string)
+			sessionId, ok := msg.Event["session_id"].(string)
 			if ok {
 				c.gatewayConfig.reconnectUrl = reconnectUrl
+				c.gatewayConfig.sessionId = sessionId
 			}
 			break
-		default:
-			bytes, _ := json.Marshal(msg)
-			log.Printf("unhandled dispatch type %s: %s", *msg.Type, string(bytes))
 		}
-		// TODO: switch based on the message type
-		return nil
-	default:
-		return fmt.Errorf("unhandled opcode received (%d)", msg.OpCode)
 	}
+
+	c.messages <- msg
+	return nil
 }

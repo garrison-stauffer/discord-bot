@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
-	"garrison-stauffer.com/discord-bot/discord/client"
+	"garrison-stauffer.com/discord-bot/app"
+	"garrison-stauffer.com/discord-bot/discord"
+	"garrison-stauffer.com/discord-bot/discord/gateway"
 	"garrison-stauffer.com/discord-bot/environment"
+	"garrison-stauffer.com/discord-bot/youtube"
 	"io"
 	"log"
 	"net/http"
@@ -39,17 +42,46 @@ func main() {
 
 	fmt.Println("Starting websocket")
 
-	botClient := client.NewClient(
-		client.NewConfig(
-			"wss://gateway.discord.gg/",
+	messages := make(chan gateway.Message, 4)
+	botClient := discord.NewClient(
+		discord.NewConfig(
+			//"wss://gateway.discord.gg/",
+			"wss://gateway-us-east1-c.discord.gg",
 			environment.BotSecret(),
 		),
+		messages,
 	)
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	err := botClient.Start()
+	ytClient := youtube.NewClient(
+		&http.Client{},
+		"AIzaSyCiJe8dST3B007y5xD3dMzTdlWL4jJoLMU",
+	)
+
+	isVid, err := ytClient.IsMusicVideo("https://www.youtube.com/watch?v=ldN9fNhZcsQ")
+	if err != nil {
+		panic(err)
+	}
+	println(isVid)
+
+	err = botClient.Start()
+
+	app := app.New(botClient, ytClient, environment.BotSecret())
+
+	go func() {
+		for {
+			select {
+			case msg := <-messages:
+				err := app.Handle(msg)
+				if err != nil {
+					log.Printf("error processing message from channel %v", err)
+				}
+			}
+		}
+	}()
+
 	if err != nil {
 		log.Fatalf("could not start bot client: %v", err)
 	}

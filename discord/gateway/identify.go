@@ -7,7 +7,7 @@ func NewIdentify(permissions intents.Intent, botSecret string) *Message {
 		OpCode:     OpIdentify,
 		SequenceId: nil,
 		Event: map[string]interface{}{
-			"token": botSecret,
+			"token": "Bot " + botSecret,
 			"properties": map[string]interface{}{
 				"os":      "linux",
 				"browser": "github.com/garrison-stauffer/discord-bot",

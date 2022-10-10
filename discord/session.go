@@ -1,4 +1,4 @@
-package client
+package discord
 
 import (
 	"bytes"
@@ -29,7 +29,7 @@ func newSession(client *clientImpl, onDisconnect func()) session {
 	return &sessionImpl{
 		state:        SessionInitializing,
 		connection:   nil, // initialized in Start()
-		shutdown:     make(chan struct{}),
+		shutdown:     make(chan struct{}, 10),
 		client:       client,
 		onDisconnect: onDisconnect,
 	}

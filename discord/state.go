@@ -1,4 +1,4 @@
-package client
+package discord
 
 type ClientState string
 type SessionState string
