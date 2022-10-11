@@ -38,8 +38,100 @@ type provider struct {
 	Url  string `json:"url"`
 }
 
-func (a *App) handleChat(msg chatMessage) error {
-	fmt.Println("uhh, received a chat message?")
+func (a *App) handleNewMessage(msg chatMessage) error {
+
+	isMusicVideo, err := a.isMusicVideo(msg)
+	if err != nil {
+		return err
+	}
+
+	if isMusicVideo {
+		log.Println("AHHHHHHHHH WE FOUND MUSIC????")
+
+		// need to extract guild + member ids
+		req, err := api.NewTimeoutRequest(msg.GuildId, msg.Author.Id, a.botSecret)
+		if err != nil {
+			return err
+		}
+
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("error setting user timeout %v", err)
+		} else {
+			foo, _ := io.ReadAll(res.Body)
+			fmt.Printf("timeout received %s\n", string(foo))
+		}
+
+		req, err = api.NewChatReact(msg.ChannelId, msg.Id, "🚨", a.botSecret)
+		res, err = http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("error setting user timeout %v", err)
+		} else {
+			foo, _ := io.ReadAll(res.Body)
+			fmt.Printf("react received %s\n", string(foo))
+		}
+	} else {
+		// create default react
+		req, err := api.NewChatReact(msg.ChannelId, msg.Id, "❤️", a.botSecret)
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("error setting default react %v", err)
+		} else {
+			foo, _ := io.ReadAll(res.Body)
+			fmt.Printf("default react received %s\n", string(foo))
+		}
+	}
+
+	return nil
+}
+
+func (a *App) handleMessageUpdate(msg chatMessage) error {
+
+	isMusicVideo, err := a.isMusicVideo(msg)
+	if err != nil {
+		return err
+	}
+
+	if isMusicVideo {
+		log.Println("AHHHHHHHHH WE FOUND MUSIC????")
+
+		// need to extract guild + member ids
+		req, err := api.NewTimeoutRequest(msg.GuildId, msg.Author.Id, a.botSecret)
+		if err != nil {
+			return err
+		}
+
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("error setting user timeout %v", err)
+		} else {
+			foo, _ := io.ReadAll(res.Body)
+			fmt.Printf("timeout received %s\n", string(foo))
+		}
+
+		req, err = api.NewChatReact(msg.ChannelId, msg.Id, "🚨", a.botSecret)
+		res, err = http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("error setting user timeout %v", err)
+		} else {
+			foo, _ := io.ReadAll(res.Body)
+			fmt.Printf("react received %s\n", string(foo))
+		}
+
+		req, err = api.NewDeleteChatReact(msg.ChannelId, msg.Id, "❤️", a.botSecret)
+		res, err = http.DefaultClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("error deleting default react %v", err)
+		} else {
+			foo, _ := io.ReadAll(res.Body)
+			fmt.Printf("default react received %s\n", string(foo))
+		}
+	}
+
+	return nil
+}
+
+func (a *App) isMusicVideo(msg chatMessage) (bool, error) {
 	if len(msg.Embeds) > 0 {
 		for _, embed := range msg.Embeds {
 			if embed.Provider == nil {
@@ -52,40 +144,13 @@ func (a *App) handleChat(msg chatMessage) error {
 				isMusic, err := a.ytClient.IsMusicVideo(embed.Url)
 
 				if err != nil {
-					return fmt.Errorf("error calling yt api %w", err)
+					return false, fmt.Errorf("error calling yt api %w", err)
 				}
 
-				if isMusic {
-					log.Println("AHHHHHHHHH WE FOUND MUSIC????")
-
-					// need to extract guild + member ids
-					req, err := api.NewTimeoutRequest(msg.GuildId, msg.Author.Id, a.botSecret)
-					if err != nil {
-						return err
-					}
-
-					res, err := http.DefaultClient.Do(req)
-					if err != nil {
-						return fmt.Errorf("error setting user timeout %v", err)
-					} else {
-						foo, _ := io.ReadAll(res.Body)
-						fmt.Printf("timeout received %s\n", string(foo))
-					}
-
-					req, err = api.NewMusicVideoReact(msg.ChannelId, msg.Id, "🚨", a.botSecret)
-					res, err = http.DefaultClient.Do(req)
-					if err != nil {
-						return fmt.Errorf("error setting user timeout %v", err)
-					} else {
-						foo, _ := io.ReadAll(res.Body)
-						fmt.Printf("react received %s\n", string(foo))
-					}
-				} else {
-					log.Println("Huh")
-				}
+				return isMusic, nil
 			}
 		}
 	}
 
-	return nil
+	return false, nil
 }

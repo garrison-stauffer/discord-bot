@@ -58,7 +58,7 @@ func main() {
 
 	ytClient := youtube.NewClient(
 		&http.Client{},
-		"AIzaSyCiJe8dST3B007y5xD3dMzTdlWL4jJoLMU",
+		environment.YtApiKey(),
 	)
 
 	isVid, err := ytClient.IsMusicVideo("https://www.youtube.com/watch?v=ldN9fNhZcsQ")

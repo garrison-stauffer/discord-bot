@@ -40,7 +40,7 @@ func (a *App) Handle(msg gateway.Message) error {
 				return err
 			}
 
-			return a.handleChat(message)
+			return a.handleNewMessage(message)
 		case "MESSAGE_UPDATE":
 			log.Printf("received uhh %s event\n", *msg.Type)
 			dataBytes, _ := json.Marshal(msg.Event)
@@ -50,7 +50,7 @@ func (a *App) Handle(msg gateway.Message) error {
 				return err
 			}
 
-			return a.handleChat(message)
+			return a.handleNewMessage(message)
 		case "VOICE_STATE_UPDATE":
 			log.Println("received voce_state_update event")
 			return nil // TODO

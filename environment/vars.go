@@ -17,3 +17,11 @@ func BotSecret() string {
 func BindPort() string {
 	return os.Getenv("PORT")
 }
+
+func YtApiKey() string {
+	s := os.Getenv("YT_API_KEY")
+	if s == "" {
+		panic("required environment variable YT_API_KEY not present")
+	}
+	return s
+}
