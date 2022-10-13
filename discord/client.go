@@ -203,8 +203,7 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 			// start off heartbeater in the background that can be stopped on disconnect
 			delay := int64(requestedIntervalMs * .87)
 			log.Printf("Kicking off heartbeater with interval: %d\n", delay)
-			go c.heartbeater.Start(10 * time.Second)
-			//go c.heartbeater.Start(time.Duration(delay))
+			go c.heartbeater.Start(time.Duration(delay) * time.Millisecond)
 
 			botIntents := intents.BuildIntentPermissions(intents.VoiceStatus, intents.GuildMessageReactions, intents.GuildPresence, intents.GuildMessages, intents.MessageContent)
 			msg = gateway.NewIdentify(botIntents, c.config.botSecretToken)
