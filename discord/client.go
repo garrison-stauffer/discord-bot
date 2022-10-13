@@ -28,10 +28,11 @@ type clientImpl struct {
 	receivedMessages chan gateway.Message
 	outgoingMessages chan gateway.Message
 	messages         chan<- gateway.Message
+	heartbeater      Heartbeater
 }
 
 func NewClient(config Config, messages chan<- gateway.Message) Client {
-	return &clientImpl{
+	c := &clientImpl{
 		config: config,
 		gatewayConfig: &gatewayConfig{
 			reconnectUrl: config.gatewayUrl,
@@ -43,6 +44,10 @@ func NewClient(config Config, messages chan<- gateway.Message) Client {
 		outgoingMessages: make(chan gateway.Message),
 		messages:         messages,
 	}
+
+	c.heartbeater = NewHeartbeater(c)
+
+	return c
 }
 
 func (c *clientImpl) Start() error {
@@ -187,10 +192,6 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 			return fmt.Errorf("could not get the heart_beat interval from %v", msg)
 		}
 		go func() {
-			delay := int64(requestedIntervalMs * .87)
-			ticker := time.NewTicker(time.Duration(delay) * time.Millisecond)
-			log.Printf("Kicking off heartbeater with interval: %d\n", delay)
-
 			// send initial heartbeat
 			msg := gateway.NewHeartbeat(c.gatewayConfig.sequence)
 			err := c.Send(*msg)
@@ -199,22 +200,18 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 				return
 			}
 
+			// start off heartbeater in the background that can be stopped on disconnect
+			delay := int64(requestedIntervalMs * .87)
+			log.Printf("Kicking off heartbeater with interval: %d\n", delay)
+			go c.heartbeater.Start(10 * time.Second)
+			//go c.heartbeater.Start(time.Duration(delay))
+
 			botIntents := intents.BuildIntentPermissions(intents.VoiceStatus, intents.GuildMessageReactions, intents.GuildPresence, intents.GuildMessages, intents.MessageContent)
 			msg = gateway.NewIdentify(botIntents, c.config.botSecretToken)
 			err = c.Send(*msg)
 			if err != nil {
 				log.Printf("error writing identify message %v\n", err)
 				return
-			}
-
-			for {
-				select {
-				case <-ticker.C:
-					fmt.Println(c.gatewayConfig.sequence)
-					msg := gateway.NewHeartbeat(c.gatewayConfig.sequence)
-					log.Printf("sending heartbeat")
-					_ = c.Send(*msg)
-				}
 			}
 		}()
 		return nil
