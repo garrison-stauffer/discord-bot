@@ -142,6 +142,7 @@ func (c *clientImpl) reconnect() {
 
 		log.Println("reconnecting client")
 
+		c.gatewayConfig.sequence = nil
 		sess := newSession(c, c.reconnect)
 		err := sess.Start()
 
