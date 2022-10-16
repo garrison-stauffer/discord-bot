@@ -142,7 +142,10 @@ func (c *clientImpl) reconnect() {
 
 		log.Println("reconnecting client")
 
+		// hack: reset sequence + reconnect URL to skip reconnects
 		c.gatewayConfig.sequence = nil
+		c.gatewayConfig.reconnectUrl = "wss://gateway-us-east1-c.discord.gg"
+
 		sess := newSession(c, c.reconnect)
 		err := sess.Start()
 
