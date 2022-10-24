@@ -1,10 +1,17 @@
 package gateway
 
 type Message struct {
-	OpCode     int                    `json:"op"`
-	Event      map[string]interface{} `json:"d"`
-	SequenceId *int                   `json:"s"`
-	Type       *string                `json:"t"`
+	OpCode     int                     `json:"op"`
+	Event      *map[string]interface{} `json:"d"`
+	SequenceId *int                    `json:"s"`
+	Type       *string                 `json:"t"`
+}
+
+type WeirdMessage struct {
+	OpCode     int     `json:"op"`
+	Event      *bool   `json:"d"`
+	SequenceId *int    `json:"s"`
+	Type       *string `json:"t"`
 }
 
 var OpDispatch = 0

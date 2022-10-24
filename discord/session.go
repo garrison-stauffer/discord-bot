@@ -100,7 +100,21 @@ func (s *sessionImpl) startHandlingMessages() {
 			err = decoder.Decode(&msg)
 			if err != nil {
 				log.Printf("Error decoding msg json %s: %v", string(msgJson), err)
-				continue
+
+				var msgV2 gateway.WeirdMessage
+				decoder = json.NewDecoder(bytes.NewReader(msgJson))
+				err = decoder.Decode(&msgV2)
+				if err != nil {
+					log.Printf("Error decoding weird msg json %s: %v", string(msgJson), err)
+					continue
+				}
+
+				msg = gateway.Message{
+					OpCode:     msgV2.OpCode,
+					Type:       msgV2.Type,
+					SequenceId: msgV2.SequenceId,
+					Event:      &map[string]interface{}{},
+				}
 			}
 
 			s.client.receivedMessages <- msg

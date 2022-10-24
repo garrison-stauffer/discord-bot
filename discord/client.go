@@ -192,7 +192,7 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 	switch msg.OpCode {
 	case gateway.OpHello:
 		// I need to parse the Hello message from this? for now just read the json map
-		requestedIntervalMs, ok := msg.Event["heartbeat_interval"].(float64)
+		requestedIntervalMs, ok := (*msg.Event)["heartbeat_interval"].(float64)
 		if !ok {
 			return fmt.Errorf("could not get the heart_beat interval from %v", msg)
 		}
@@ -222,6 +222,13 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 	case gateway.OpHeartbeatAck:
 		return nil
 	case gateway.OpReconnect:
+		log.Println("received reconnect, going to stop current session and rejoin in 5s")
+		_ = c.session.Stop()
+		time.Sleep(5 * time.Second)
+		c.reconnect()
+		return nil
+	case gateway.OpInvalidSession:
+		log.Println("received invalid session, going to stop current session and rejoin in 5s")
 		_ = c.session.Stop()
 		time.Sleep(5 * time.Second)
 		c.reconnect()
@@ -229,8 +236,8 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 	case gateway.OpDispatch:
 		switch *msg.Type {
 		case "READY":
-			reconnectUrl, ok := msg.Event["resume_gateway_url"].(string)
-			sessionId, ok := msg.Event["session_id"].(string)
+			reconnectUrl, ok := (*msg.Event)["resume_gateway_url"].(string)
+			sessionId, ok := (*msg.Event)["session_id"].(string)
 			if ok {
 				c.gatewayConfig.reconnectUrl = reconnectUrl
 				c.gatewayConfig.sessionId = sessionId

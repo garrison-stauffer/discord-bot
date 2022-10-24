@@ -6,7 +6,7 @@ func NewIdentify(permissions intents.Intent, botSecret string) *Message {
 	return &Message{
 		OpCode:     OpIdentify,
 		SequenceId: nil,
-		Event: map[string]interface{}{
+		Event: &map[string]interface{}{
 			"token": "Bot " + botSecret,
 			"properties": map[string]interface{}{
 				"os":      "linux",
