@@ -74,6 +74,7 @@ func (s *sessionImpl) State() SessionState {
 }
 
 func (s *sessionImpl) connectToGateway() (*websocket.Conn, error) {
+	fmt.Printf("connecting to URL %s", s.client.gatewayConfig.reconnectUrl)
 	conn, _, err := websocket.DefaultDialer.Dial(s.client.gatewayConfig.reconnectUrl, nil)
 	return conn, err
 }
@@ -89,6 +90,7 @@ func (s *sessionImpl) startHandlingMessages() {
 			if err != nil {
 				// exit loop so that we close socketClosed, and can go forward with a Reconnect
 				log.Printf("error while reading a message - going to restart connection: %v. \n", err)
+				_ = s.connection.Close()
 				return
 			}
 
@@ -115,18 +117,18 @@ func (s *sessionImpl) startHandlingMessages() {
 				_ = s.client.Send(msg)
 			}
 		case <-socketClosed:
-			fmt.Println("received message from session being disconnected")
+			fmt.Println("received message from session being disconnected, waiting 5s then reconnecting")
 			s.state = SessionDisconnected
+			time.Sleep(5 * time.Second)
 			s.onDisconnect()
 			return
 		case <-s.shutdown:
 			s.state = SessionDisconnected
 
 			fmt.Println("received message from shutdown channel")
-			err := s.connection.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+			err := s.connection.Close()
 			if err != nil {
 				log.Printf("error closing connection, going to mark client as closed anyways: %v\n", err)
-				return
 			}
 			select {
 			case <-socketClosed:

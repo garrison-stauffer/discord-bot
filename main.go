@@ -46,8 +46,8 @@ func main() {
 	messages := make(chan gateway.Message, 4)
 	botClient := discord.NewClient(
 		discord.NewConfig(
-			//"wss://gateway.discord.gg/",
-			"wss://gateway-us-east1-c.discord.gg",
+			"wss://gateway.discord.gg/",
+			//"wss://gateway-us-east1-c.discord.gg",
 			environment.BotSecret(),
 		),
 		messages,

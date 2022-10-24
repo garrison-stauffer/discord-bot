@@ -144,12 +144,13 @@ func (c *clientImpl) reconnect() {
 
 		// hack: reset sequence + reconnect URL to skip reconnects
 		c.gatewayConfig.sequence = nil
-		c.gatewayConfig.reconnectUrl = "wss://gateway-us-east1-c.discord.gg"
+		c.gatewayConfig.reconnectUrl = "wss://gateway.discord.gg/"
 
 		sess := newSession(c, c.reconnect)
 		err := sess.Start()
 
 		if err != nil {
+			sess.Stop()
 			go func() {
 				select {
 				case <-time.After(5 * time.Second):
@@ -221,6 +222,8 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 	case gateway.OpHeartbeatAck:
 		return nil
 	case gateway.OpReconnect:
+		_ = c.session.Stop()
+		time.Sleep(5 * time.Second)
 		c.reconnect()
 		return nil
 	case gateway.OpDispatch:
