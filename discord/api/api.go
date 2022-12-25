@@ -71,7 +71,7 @@ func NewMessage(cId, botSecret, message string) (*http.Request, error) {
 
 	requestBody := map[string]interface{}{
 		"content": message,
-		"tts":     false,
+		"tts":     true,
 	}
 	body, err := json.Marshal(requestBody)
 	if err != nil {
