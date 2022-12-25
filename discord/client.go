@@ -210,7 +210,7 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 			log.Printf("Kicking off heartbeater with interval: %d\n", delay)
 			go c.heartbeater.Start(time.Duration(delay) * time.Millisecond)
 
-			botIntents := intents.BuildIntentPermissions(intents.VoiceStatus, intents.GuildMessageReactions, intents.GuildPresence, intents.GuildMessages, intents.MessageContent)
+			botIntents := intents.BuildIntentPermissions(intents.VoiceStatus, intents.Guilds, intents.GuildMembers, intents.GuildMessageReactions, intents.GuildPresence, intents.GuildMessages, intents.MessageContent)
 			msg = gateway.NewIdentify(botIntents, c.config.botSecretToken)
 			err = c.Send(*msg)
 			if err != nil {

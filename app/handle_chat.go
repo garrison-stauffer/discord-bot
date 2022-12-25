@@ -10,7 +10,7 @@ import (
 )
 
 type chatMessage struct {
-	Id           string       `json:"id"`
+	Id           string       `json:"Id"`
 	TextToSpeech bool         `json:"tts"`
 	Timestamp    string       `json:"timestamp"`
 	Author       author       `json:"author"`
@@ -21,8 +21,8 @@ type chatMessage struct {
 }
 
 type author struct {
-	User string `json:"username"`
-	Id   string `json:"id"`
+	UserName string `json:"username"`
+	Id       string `json:"Id"`
 }
 
 type attachment struct {
@@ -48,7 +48,7 @@ func (a *App) handleNewMessage(msg chatMessage) error {
 	if isMusicVideo {
 		log.Println("AHHHHHHHHH WE FOUND MUSIC????")
 
-		// need to extract guild + member ids
+		// need to extract Guild + member ids
 		req, err := api.NewTimeoutRequest(msg.GuildId, msg.Author.Id, a.botSecret)
 		if err != nil {
 			return err
@@ -72,6 +72,13 @@ func (a *App) handleNewMessage(msg chatMessage) error {
 		}
 	} else {
 		// create default react
+
+		log.Println(msg.ChannelId + " is equal to " + resolveVoiceChannelId(msg.GuildId) + " ???")
+		if msg.ChannelId == resolveVoiceChannelId(msg.GuildId) {
+			// don't react to chat logs
+			return nil
+		}
+
 		req, err := api.NewChatReact(msg.ChannelId, msg.Id, "❤️", a.botSecret)
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -95,7 +102,7 @@ func (a *App) handleMessageUpdate(msg chatMessage) error {
 	if isMusicVideo {
 		log.Println("AHHHHHHHHH WE FOUND MUSIC????")
 
-		// need to extract guild + member ids
+		// need to extract Guild + member ids
 		req, err := api.NewTimeoutRequest(msg.GuildId, msg.Author.Id, a.botSecret)
 		if err != nil {
 			return err

@@ -63,3 +63,29 @@ func NewDeleteChatReact(cId, mId, react, botSecret string) (*http.Request, error
 
 	return req, nil
 }
+
+func NewMessage(cId, botSecret, message string) (*http.Request, error) {
+	url := fmt.Sprintf("%s/channels/%s/messages", "https://discord.com/api", cId)
+
+	fmt.Println("attempting to send repost react to", url)
+
+	requestBody := map[string]interface{}{
+		"content": message,
+		"tts":     false,
+	}
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bot "+botSecret)
+	req.Header.Set("User-Agent", "DiscordBot (discord-bot.garrison-stauffer.com, 0.0.1)")
+	req.Header.Set("Content-Type", "application/json")
+
+	return req, nil
+}

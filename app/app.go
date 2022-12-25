@@ -2,7 +2,9 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"garrison-stauffer.com/discord-bot/discord"
+	"garrison-stauffer.com/discord-bot/discord/api"
 	"garrison-stauffer.com/discord-bot/discord/gateway"
 	"garrison-stauffer.com/discord-bot/youtube"
 	"log"
@@ -12,6 +14,7 @@ type App struct {
 	discordClient discord.Client
 	ytClient      youtube.Client
 	botSecret     string
+	cache         Cache
 }
 
 func New(discordClient discord.Client, ytClient youtube.Client, botSecret string) *App {
@@ -19,6 +22,7 @@ func New(discordClient discord.Client, ytClient youtube.Client, botSecret string
 		discordClient: discordClient,
 		ytClient:      ytClient,
 		botSecret:     botSecret,
+		cache:         newCache(),
 	}
 }
 
@@ -53,10 +57,29 @@ func (a *App) Handle(msg gateway.Message) error {
 			return a.handleNewMessage(message)
 		case "VOICE_STATE_UPDATE":
 			log.Println("received voce_state_update event")
-			return nil // TODO
+
+			dataBytes, _ := json.Marshal(msg.Event)
+			var message api.VoiceState
+			err := json.Unmarshal(dataBytes, &message)
+			if err != nil {
+				return fmt.Errorf("error parsing voice state update %v", err)
+			}
+
+			return a.handleVoiceUpdate(message)
 		case "PRESENCE_UPDATE":
 			log.Println("received present_update event")
 			return nil // TODO?
+		case "GUILD_CREATE":
+			log.Println("bootstrapping server from GUILD_CREATE event")
+
+			dataBytes, _ := json.Marshal(msg.Event)
+			var message api.GatewayGuildCreate
+			err := json.Unmarshal(dataBytes, &message)
+			if err != nil {
+				return err
+			}
+
+			return a.handleGuildCreate(message)
 		default:
 			bytes, _ := json.Marshal(msg)
 			log.Printf("unhandled dispatch type %s: %s", *msg.Type, string(bytes))
