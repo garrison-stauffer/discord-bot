@@ -45,10 +45,10 @@ func (c *clientImpl) IsMusicVideo(ytUrl string) (bool, error) {
 	}
 
 	vId, ok := url.Query()["v"]
-	log.Printf("%v", vId[0])
 	if !ok || len(vId) != 1 {
 		return false, fmt.Errorf("unable to parse video id from %s", ytUrl)
 	}
+	log.Printf("%v", vId[0])
 
 	resp, err := c.client.Get(fmt.Sprintf("https://youtube.googleapis.com/youtube/v3/videos?part=snippet&id=%s&key=%s", vId[0], c.apiToken))
 	if err != nil {
