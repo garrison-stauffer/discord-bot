@@ -42,7 +42,7 @@ func (i *InstanceManager) GetInstanceMetadata(ctx context.Context) (InstanceMeta
 	})
 
 	if err != nil {
-		log.Printf("error describing ec2 instance: %w\n", err)
+		log.Printf("error describing ec2 instance: %+v\n", err)
 		return InstanceMetadata{}, fmt.Errorf("error describing instances: %w", err)
 	}
 
