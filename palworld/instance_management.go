@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"log"
 )
 
 const palworldEc2Instance = "i-00c202c075b0c9e48" // prod server
@@ -41,6 +42,7 @@ func (i *InstanceManager) GetInstanceMetadata(ctx context.Context) (InstanceMeta
 	})
 
 	if err != nil {
+		log.Printf("error describing ec2 instance: %w\n", err)
 		return InstanceMetadata{}, fmt.Errorf("error describing instances: %w", err)
 	}
 

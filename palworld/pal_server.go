@@ -64,7 +64,7 @@ func (s *Server) StartServer(ctx context.Context) (*InstanceMetadata, error) {
 	// get instance into a running state
 	err := s.getInstanceToRunningState(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error getting instance into a running state")
+		return nil, fmt.Errorf("error getting instance into a running state: %w", err)
 	}
 
 	err = s.getPalServerToRunning(ctx)
