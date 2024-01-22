@@ -170,7 +170,7 @@ func (s *Server) checkRconConnectivity(ip *string) (bool, error) {
 	conn, err := rcon.Dial(*ip+":25575", s.password)
 	if err != nil {
 		// assume dial fails because server is not running
-		return false, nil
+		return false, err
 	}
 	defer conn.Close()
 
