@@ -6,6 +6,7 @@ import (
 	"garrison-stauffer.com/discord-bot/environment"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/gorcon/rcon"
+	"log"
 	"sync"
 	"time"
 )
@@ -155,6 +156,7 @@ func (s *Server) getPalServerToRunning(ctx context.Context) error {
 		if isPalServerUp {
 			break
 		}
+		log.Printf("failed to connect to pal server at %+v\n", meta)
 	}
 
 	if !isPalServerUp {
@@ -180,6 +182,7 @@ func (s *Server) saveAndShutdownServerOverRcon(ip *string) error {
 	conn, err := rcon.Dial(*ip+":25575", s.password)
 	if err != nil {
 		// assume dial fails because server is not running - no op here
+		log.Printf("error connecting to %s:25575: %v", *ip, err)
 		return nil
 	}
 
