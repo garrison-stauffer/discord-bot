@@ -25,3 +25,11 @@ func YtApiKey() string {
 	}
 	return s
 }
+
+func PalServerPassword() string {
+	s := os.Getenv("PALSERVER_ADMIN_PASSWORD")
+	if s == "" {
+		panic("required environment variable PALSERVER_ADMIN_PASSWORD not present")
+	}
+	return s
+}

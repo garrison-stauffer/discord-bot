@@ -89,3 +89,34 @@ func NewMessage(cId, botSecret, message string) (*http.Request, error) {
 
 	return req, nil
 }
+
+func NewAcknowledgeInteraction(iId, iToken, botSecret, message string) (*http.Request, error) {
+	url := fmt.Sprintf("%s/interactions/%s/%s/callback", "https://discord.com/api", iId, iToken)
+	fmt.Println("attempting to acknowledge interaction at", url)
+
+	requestBody := map[string]interface{}{
+		"type": 4,
+		"data": map[string]interface{}{
+			"content": message,
+		},
+	}
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bot "+botSecret)
+	req.Header.Set("User-Agent", "DiscordBot (discord-bot.garrison-stauffer.com, 0.0.1)")
+	req.Header.Set("Content-Type", "application/json")
+
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}

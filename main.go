@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"garrison-stauffer.com/discord-bot/app"
 	"garrison-stauffer.com/discord-bot/discord"
 	"garrison-stauffer.com/discord-bot/discord/gateway"
 	"garrison-stauffer.com/discord-bot/environment"
+	"garrison-stauffer.com/discord-bot/palworld"
 	"garrison-stauffer.com/discord-bot/youtube"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"io"
 	"log"
 	"net/http"
@@ -69,7 +72,10 @@ func main() {
 
 	err = botClient.Start()
 
-	app := app.New(botClient, ytClient, environment.BotSecret())
+	cfg, _ := config.LoadDefaultConfig(context.Background())
+	palServer := palworld.NewServer(cfg)
+
+	app := app.New(botClient, ytClient, palServer, environment.BotSecret())
 
 	go func() {
 		for {

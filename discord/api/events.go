@@ -32,3 +32,14 @@ type VoiceState struct {
 	IsStreaming    bool `json:"self_stream"`
 	IsVideoCalling bool `json:"self_video"`
 }
+
+type InteractionCreate struct {
+	Id                string             `json:"id"`
+	ContinuationToken string             `json:"token"`
+	Channel           string             `json:"channel_id"`
+	Command           InteractionCommand `json:"data"`
+}
+
+type InteractionCommand struct {
+	Name string `json:"name"`
+}
