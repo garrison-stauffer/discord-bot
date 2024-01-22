@@ -156,7 +156,7 @@ func (s *Server) getPalServerToRunning(ctx context.Context) error {
 		if isPalServerUp {
 			break
 		}
-		log.Printf("failed to connect to pal server at %+v\n", meta)
+		log.Printf("failed to connect to pal server at %+v - %s\n", meta, *meta.PublicIp)
 	}
 
 	if !isPalServerUp {
