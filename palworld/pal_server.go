@@ -145,7 +145,17 @@ func (s *Server) getPalServerToRunning(ctx context.Context) error {
 		return nil
 	}
 
-	err := s.instance.StartPalServer(ctx)
+	var err error
+	for i := 0; i < 10; i++ {
+		err = s.instance.StartPalServer(ctx)
+		if err != nil {
+			log.Printf("error when issuing ssm command, likely a race condition: %v", err)
+			time.Sleep(3 * time.Second)
+		} else {
+			err = nil
+			break
+		}
+	}
 	if err != nil {
 		return fmt.Errorf("error while issuing SSM command to start the server: %w", err)
 	}
