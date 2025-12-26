@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 
 	"garrison-stauffer.com/discord-bot/discord"
 	"garrison-stauffer.com/discord-bot/discord/api"
@@ -36,7 +37,7 @@ func (a *App) Handle(msg gateway.Message) error {
 			log.Println("received ready event")
 			return nil // no business logic for READY event
 		case "MESSAGE_CREATE":
-			log.Printf("received uhh %s event\n", *msg.Type)
+			slog.Info("received message_create event")
 			dataBytes, _ := json.Marshal(msg.Event)
 			var message chatMessage
 			err := json.Unmarshal(dataBytes, &message)
@@ -46,7 +47,7 @@ func (a *App) Handle(msg gateway.Message) error {
 
 			return a.handleNewMessage(message)
 		case "MESSAGE_UPDATE":
-			log.Printf("received uhh %s event\n", *msg.Type)
+			slog.Info("received message_update event")
 			dataBytes, _ := json.Marshal(msg.Event)
 			var message chatMessage
 			err := json.Unmarshal(dataBytes, &message)
@@ -56,7 +57,7 @@ func (a *App) Handle(msg gateway.Message) error {
 
 			return a.handleNewMessage(message)
 		case "VOICE_STATE_UPDATE":
-			log.Println("received voce_state_update event")
+			slog.Info("received voce_state_update event")
 
 			dataBytes, _ := json.Marshal(msg.Event)
 			var message api.VoiceState
@@ -67,10 +68,10 @@ func (a *App) Handle(msg gateway.Message) error {
 
 			return a.handleVoiceUpdate(message)
 		case "PRESENCE_UPDATE":
-			log.Println("received present_update event")
+			slog.Info("received present_update event")
 			return nil // TODO?
 		case "GUILD_CREATE":
-			log.Println("bootstrapping server from GUILD_CREATE event")
+			slog.Info("bootstrapping server from GUILD_CREATE event")
 
 			dataBytes, _ := json.Marshal(msg.Event)
 			var message api.GatewayGuildCreate
@@ -82,11 +83,11 @@ func (a *App) Handle(msg gateway.Message) error {
 			return a.handleGuildCreate(message)
 		default:
 			bytes, _ := json.Marshal(msg)
-			log.Printf("unhandled dispatch type %s: %s", *msg.Type, string(bytes))
+			slog.Info("unhandled dispatch type", "type", *msg.Type, "body", string(bytes))
 		}
 	default:
 		bytes, _ := json.Marshal(msg)
-		log.Printf("unhandled opcode %s with body %s", msg.OpCode, string(bytes))
+		slog.Info("unhandled gateway opcode", "opcode", msg.OpCode, "body", string(bytes))
 	}
 
 	return nil

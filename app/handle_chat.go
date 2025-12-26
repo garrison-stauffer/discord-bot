@@ -2,11 +2,13 @@ package app
 
 import (
 	"fmt"
-	"garrison-stauffer.com/discord-bot/discord/api"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"strings"
+
+	"garrison-stauffer.com/discord-bot/discord/api"
 )
 
 type chatMessage struct {
@@ -42,7 +44,7 @@ func (a *App) handleNewMessage(msg chatMessage) error {
 
 	isMusicVideo, err := a.isMusicVideo(msg)
 	if err != nil {
-		return err
+		slog.Error("error checking if music video", "error", err)
 	}
 
 	if isMusicVideo {
@@ -69,23 +71,6 @@ func (a *App) handleNewMessage(msg chatMessage) error {
 		} else {
 			foo, _ := io.ReadAll(res.Body)
 			fmt.Printf("react received %s\n", string(foo))
-		}
-	} else {
-		// create default react
-
-		log.Println(msg.ChannelId + " is equal to " + resolveVoiceChannelId(msg.GuildId) + " ???")
-		if msg.ChannelId == resolveVoiceChannelId(msg.GuildId) {
-			// don't react to chat logs
-			return nil
-		}
-
-		req, err := api.NewChatReact(msg.ChannelId, msg.Id, "❤️", a.botSecret)
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return fmt.Errorf("error setting default react %v", err)
-		} else {
-			foo, _ := io.ReadAll(res.Body)
-			fmt.Printf("default react received %s\n", string(foo))
 		}
 	}
 
