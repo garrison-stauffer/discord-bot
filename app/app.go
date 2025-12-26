@@ -3,27 +3,25 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"garrison-stauffer.com/discord-bot/discord"
 	"garrison-stauffer.com/discord-bot/discord/api"
 	"garrison-stauffer.com/discord-bot/discord/gateway"
-	"garrison-stauffer.com/discord-bot/palworld"
 	"garrison-stauffer.com/discord-bot/youtube"
-	"log"
 )
 
 type App struct {
 	discordClient discord.Client
 	ytClient      youtube.Client
-	palworld      *palworld.Server
 	botSecret     string
 	cache         Cache
 }
 
-func New(discordClient discord.Client, ytClient youtube.Client, palworld *palworld.Server, botSecret string) *App {
+func New(discordClient discord.Client, ytClient youtube.Client, botSecret string) *App {
 	return &App{
 		discordClient: discordClient,
 		ytClient:      ytClient,
-		palworld:      palworld,
 		botSecret:     botSecret,
 		cache:         newCache(),
 	}
@@ -82,16 +80,6 @@ func (a *App) Handle(msg gateway.Message) error {
 			}
 
 			return a.handleGuildCreate(message)
-		case "INTERACTION_CREATE":
-			log.Println("received an interaction with the bot")
-			dataBytes, _ := json.Marshal(msg.Event)
-			var message api.InteractionCreate
-			err := json.Unmarshal(dataBytes, &message)
-			if err != nil {
-				return err
-			}
-
-			return a.handleInteractionCreate(message)
 		default:
 			bytes, _ := json.Marshal(msg)
 			log.Printf("unhandled dispatch type %s: %s", *msg.Type, string(bytes))

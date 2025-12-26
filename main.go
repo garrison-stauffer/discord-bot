@@ -3,6 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	"garrison-stauffer.com/discord-bot/app"
 	"garrison-stauffer.com/discord-bot/discord"
 	"garrison-stauffer.com/discord-bot/discord/gateway"
@@ -10,12 +17,6 @@ import (
 	"garrison-stauffer.com/discord-bot/palworld"
 	"garrison-stauffer.com/discord-bot/youtube"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"io"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
 )
 
 func main() {
@@ -33,7 +34,7 @@ func main() {
 		}
 		mx.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 			log.Println("Received message on /ping")
-			io.WriteString(w, "Doo doo")
+			io.WriteString(w, "pong")
 		})
 		mx.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
 			log.Println("Received message on /healthcheck")
@@ -72,16 +73,13 @@ func main() {
 
 	err = botClient.Start()
 
-	cfg, _ := config.LoadDefaultConfig(context.Background())
-	palServer := palworld.NewServer(cfg)
-
-	app := app.New(botClient, ytClient, palServer, environment.BotSecret())
+	application := app.New(botClient, ytClient, environment.BotSecret())
 
 	go func() {
 		for {
 			select {
 			case msg := <-messages:
-				err := app.Handle(msg)
+				err := application.Handle(msg)
 				if err != nil {
 					log.Printf("error processing message from channel %v", err)
 				}
@@ -100,7 +98,11 @@ func main() {
 		if err != nil {
 			log.Printf("error shutting down bot client: %v", err)
 		}
-		srv.Close()
+
+		err = srv.Close()
+		if err != nil {
+			log.Printf("error shutting down http server: %v", err)
+		}
 
 		select {
 		case <-serverComplete:
