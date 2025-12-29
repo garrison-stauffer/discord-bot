@@ -2,9 +2,10 @@ package app
 
 import (
 	"fmt"
-	"garrison-stauffer.com/discord-bot/discord/api"
 	"log"
 	"net/http"
+
+	"garrison-stauffer.com/discord-bot/discord/api"
 )
 
 func (a *App) handleVoiceUpdate(msg api.VoiceState) error {
@@ -80,7 +81,7 @@ func (a *App) resolveChangeAndSendMessage(msg api.VoiceState, guild *Guild, user
 				return fmt.Errorf("could not identify the old channel id %s when handling voice update", oldChannel)
 			}
 
-			message = fmt.Sprintf("%s moved to %s from %s", username, oldChannelInfo.Name, newChannelInfo.Name)
+			message = fmt.Sprintf("%s moved to %s from %s", username, newChannelInfo.Name, oldChannelInfo.Name)
 		}
 	} else if oldChannel != "" {
 		oldChannelInfo, ok := guild.Channels[oldChannel]
