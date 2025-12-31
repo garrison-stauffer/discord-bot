@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -48,9 +47,8 @@ func (a *App) handleNewMessage(msg chatMessage) error {
 	}
 
 	if isMusicVideo {
-		log.Println("AHHHHHHHHH WE FOUND MUSIC????")
+		slog.Info("detected music video in message", "author", msg.Author.UserName, "channel_id", msg.ChannelId)
 
-		// need to extract Guild + member ids
 		req, err := api.NewTimeoutRequest(msg.GuildId, msg.Author.Id, a.botSecret)
 		if err != nil {
 			return err
@@ -61,7 +59,7 @@ func (a *App) handleNewMessage(msg chatMessage) error {
 			return fmt.Errorf("error setting user timeout %v", err)
 		} else {
 			foo, _ := io.ReadAll(res.Body)
-			fmt.Printf("timeout received %s\n", string(foo))
+			slog.Debug("timeout response received", "response", string(foo))
 		}
 
 		req, err = api.NewChatReact(msg.ChannelId, msg.Id, "🚨", a.botSecret)
@@ -70,7 +68,7 @@ func (a *App) handleNewMessage(msg chatMessage) error {
 			return fmt.Errorf("error setting user timeout %v", err)
 		} else {
 			foo, _ := io.ReadAll(res.Body)
-			fmt.Printf("react received %s\n", string(foo))
+			slog.Debug("react response received", "response", string(foo))
 		}
 	}
 
@@ -85,9 +83,8 @@ func (a *App) handleMessageUpdate(msg chatMessage) error {
 	}
 
 	if isMusicVideo {
-		log.Println("AHHHHHHHHH WE FOUND MUSIC????")
+		slog.Info("detected music video in updated message", "author", msg.Author.UserName, "channel_id", msg.ChannelId)
 
-		// need to extract Guild + member ids
 		req, err := api.NewTimeoutRequest(msg.GuildId, msg.Author.Id, a.botSecret)
 		if err != nil {
 			return err
@@ -98,7 +95,7 @@ func (a *App) handleMessageUpdate(msg chatMessage) error {
 			return fmt.Errorf("error setting user timeout %v", err)
 		} else {
 			foo, _ := io.ReadAll(res.Body)
-			fmt.Printf("timeout received %s\n", string(foo))
+			slog.Debug("timeout response received", "response", string(foo))
 		}
 
 		req, err = api.NewChatReact(msg.ChannelId, msg.Id, "🚨", a.botSecret)
@@ -107,7 +104,7 @@ func (a *App) handleMessageUpdate(msg chatMessage) error {
 			return fmt.Errorf("error setting user timeout %v", err)
 		} else {
 			foo, _ := io.ReadAll(res.Body)
-			fmt.Printf("react received %s\n", string(foo))
+			slog.Debug("react response received", "response", string(foo))
 		}
 
 		req, err = api.NewDeleteChatReact(msg.ChannelId, msg.Id, "❤️", a.botSecret)
@@ -116,7 +113,7 @@ func (a *App) handleMessageUpdate(msg chatMessage) error {
 			return fmt.Errorf("error deleting default react %v", err)
 		} else {
 			foo, _ := io.ReadAll(res.Body)
-			fmt.Printf("default react received %s\n", string(foo))
+			slog.Debug("default react deleted", "response", string(foo))
 		}
 	}
 
@@ -131,7 +128,7 @@ func (a *App) isMusicVideo(msg chatMessage) (bool, error) {
 			}
 
 			if strings.ToLower(embed.Provider.Name) == "youtube" {
-				log.Printf("received youtube link - %s\n", embed.Url)
+				slog.Info("found youtube link", "url", embed.Url)
 
 				isMusic, err := a.ytClient.IsMusicVideo(embed.Url)
 

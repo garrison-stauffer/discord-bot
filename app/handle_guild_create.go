@@ -1,10 +1,8 @@
 package app
 
 import (
-	"encoding/json"
 	"garrison-stauffer.com/discord-bot/discord/api"
 	"garrison-stauffer.com/discord-bot/discord/channels"
-	"log"
 )
 
 func (a *App) handleGuildCreate(msg api.GatewayGuildCreate) error {
@@ -63,9 +61,6 @@ func (a *App) handleGuildCreate(msg api.GatewayGuildCreate) error {
 
 		user.ConnectedTo = v.ChannelId
 	}
-
-	json, _ := json.Marshal(a.cache)
-	log.Println("fuuuuuck you garrison" + string(json))
 
 	return nil
 }

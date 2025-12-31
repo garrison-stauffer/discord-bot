@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"time"
+
 	"garrison-stauffer.com/discord-bot/discord/gateway"
 	"github.com/gorilla/websocket"
-	"log"
-	"time"
 )
 
 type session interface {
@@ -65,7 +66,7 @@ func (s *sessionImpl) SendMessage(msg gateway.Message) error {
 	if err != nil {
 		return fmt.Errorf("error creating json message %v: %v", err, msg)
 	}
-	log.Printf("sending message? %s", string(bytes))
+	slog.Debug("sending message", "message", string(bytes))
 	return s.connection.WriteMessage(1, bytes)
 }
 
@@ -74,38 +75,37 @@ func (s *sessionImpl) State() SessionState {
 }
 
 func (s *sessionImpl) connectToGateway() (*websocket.Conn, error) {
-	fmt.Printf("connecting to URL %s", s.client.gatewayConfig.reconnectUrl)
+	slog.Info("connecting to gateway", "url", s.client.gatewayConfig.reconnectUrl)
 	conn, _, err := websocket.DefaultDialer.Dial(s.client.gatewayConfig.reconnectUrl, nil)
 	return conn, err
 }
 
 func (s *sessionImpl) startHandlingMessages() {
 	socketClosed := make(chan struct{})
-	log.Println("starting to handle messages")
+	slog.Info("starting message handler")
 
 	go func() {
 		defer close(socketClosed)
-		for { // iterate as long as messages come in
+		for {
 			msgType, msgJson, err := s.connection.ReadMessage()
 			if err != nil {
-				// exit loop so that we close socketClosed, and can go forward with a Reconnect
-				log.Printf("error while reading a message - going to restart connection: %v. \n", err)
+				slog.Error("error reading message, restarting connection", "error", err)
 				_ = s.connection.Close()
 				return
 			}
 
-			log.Printf("Received message of type %d with body %s", msgType, string(msgJson))
+			slog.Debug("received raw message", "type", msgType, "body", string(msgJson))
 			decoder := json.NewDecoder(bytes.NewReader(msgJson))
 			var msg gateway.Message
 			err = decoder.Decode(&msg)
 			if err != nil {
-				log.Printf("Error decoding msg json %s: %v", string(msgJson), err)
+				slog.Error("error decoding message json", "error", err, "json", string(msgJson))
 
 				var msgV2 gateway.WeirdMessage
 				decoder = json.NewDecoder(bytes.NewReader(msgJson))
 				err = decoder.Decode(&msgV2)
 				if err != nil {
-					log.Printf("Error decoding weird msg json %s: %v", string(msgJson), err)
+					slog.Error("error decoding weird message json", "error", err, "json", string(msgJson))
 					continue
 				}
 
@@ -124,14 +124,14 @@ func (s *sessionImpl) startHandlingMessages() {
 	for {
 		select {
 		case msg := <-s.client.outgoingMessages:
-			log.Printf("sending message %v", msg)
+			slog.Debug("sending outgoing message", "opcode", msg.OpCode)
 			err := s.SendMessage(msg)
 			if err != nil {
-				log.Printf("error sending message off channel, requeuing %v", err)
+				slog.Error("error sending message, requeuing", "error", err)
 				_ = s.client.Send(msg)
 			}
 		case <-socketClosed:
-			fmt.Println("received message from session being disconnected, waiting 5s then reconnecting")
+			slog.Info("session disconnected, reconnecting in 5s")
 			s.state = SessionDisconnected
 			time.Sleep(5 * time.Second)
 			s.onDisconnect()
@@ -139,16 +139,16 @@ func (s *sessionImpl) startHandlingMessages() {
 		case <-s.shutdown:
 			s.state = SessionDisconnected
 
-			fmt.Println("received message from shutdown channel")
+			slog.Info("received shutdown signal")
 			err := s.connection.Close()
 			if err != nil {
-				log.Printf("error closing connection, going to mark client as closed anyways: %v\n", err)
+				slog.Error("error closing connection, marking as closed anyway", "error", err)
 			}
 			select {
 			case <-socketClosed:
-				log.Println("socket properly closed")
+				slog.Info("socket properly closed")
 			case <-time.After(time.Second):
-				log.Println("exiting without socket being closed, took longer than 1s")
+				slog.Warn("socket close timeout after 1s")
 			}
 			return
 		}

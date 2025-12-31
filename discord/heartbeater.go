@@ -2,9 +2,10 @@ package discord
 
 import (
 	"fmt"
-	"garrison-stauffer.com/discord-bot/discord/gateway"
-	"log"
+	"log/slog"
 	"time"
+
+	"garrison-stauffer.com/discord-bot/discord/gateway"
 )
 
 type Heartbeater interface {
@@ -29,11 +30,10 @@ func NewHeartbeater(c *clientImpl) Heartbeater {
 
 func (h *heartbeaterImpl) Start(interval time.Duration) {
 	if h.isRunning {
-		// restart it
-		log.Println("Stopping current heartbeater")
+		slog.Info("stopping current heartbeater to restart")
 		err := h.Stop()
 		if err != nil {
-			fmt.Println("Couldn't stop the heartbeater, going to skip starting a new one and hope for the best")
+			slog.Error("couldn't stop heartbeater, skipping restart", "error", err)
 			return
 		}
 	}
@@ -44,9 +44,8 @@ func (h *heartbeaterImpl) Start(interval time.Duration) {
 	for {
 		select {
 		case <-ticker.C:
-			fmt.Println(h.client.gatewayConfig.sequence)
 			msg := gateway.NewHeartbeat(h.client.gatewayConfig.sequence)
-			log.Printf("sending heartbeat")
+			slog.Debug("sending heartbeat", "sequence", h.client.gatewayConfig.sequence)
 			_ = h.client.Send(*msg)
 
 		case <-h.stopBeating:

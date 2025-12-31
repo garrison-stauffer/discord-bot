@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -36,7 +37,7 @@ func NewTimeoutRequest(gId, mId string, botSecret string) (*http.Request, error)
 
 func NewChatReact(cId, mId, react, botSecret string) (*http.Request, error) {
 	url := fmt.Sprintf("%s/channels/%s/messages/%s/reactions/%s/@me", "https://discord.com/api", cId, mId, react)
-	fmt.Println("attempting to send repost react to", url)
+	slog.Debug("creating react request", "url", url)
 	req, err := http.NewRequest("PUT", url, nil)
 	req.Header.Set("Authorization", "Bot "+botSecret)
 	req.Header.Set("User-Agent", "DiscordBot (discord-bot.garrison-stauffer.com, 0.0.1)")
@@ -51,7 +52,7 @@ func NewChatReact(cId, mId, react, botSecret string) (*http.Request, error) {
 
 func NewDeleteChatReact(cId, mId, react, botSecret string) (*http.Request, error) {
 	url := fmt.Sprintf("%s/channels/%s/messages/%s/reactions/%s/@me", "https://discord.com/api", cId, mId, react)
-	fmt.Println("attempting to send repost react to", url)
+	slog.Debug("creating delete react request", "url", url)
 	req, err := http.NewRequest("DELETE", url, nil)
 	req.Header.Set("Authorization", "Bot "+botSecret)
 	req.Header.Set("User-Agent", "DiscordBot (discord-bot.garrison-stauffer.com, 0.0.1)")
@@ -67,7 +68,7 @@ func NewDeleteChatReact(cId, mId, react, botSecret string) (*http.Request, error
 func NewMessage(cId, botSecret, message string) (*http.Request, error) {
 	url := fmt.Sprintf("%s/channels/%s/messages", "https://discord.com/api", cId)
 
-	fmt.Println("attempting to send repost react to", url)
+	slog.Debug("creating message request", "url", url)
 
 	requestBody := map[string]interface{}{
 		"content": message,
@@ -92,7 +93,7 @@ func NewMessage(cId, botSecret, message string) (*http.Request, error) {
 
 func NewAcknowledgeInteraction(iId, iToken, botSecret, message string) (*http.Request, error) {
 	url := fmt.Sprintf("%s/interactions/%s/%s/callback", "https://discord.com/api", iId, iToken)
-	fmt.Println("attempting to acknowledge interaction at", url)
+	slog.Debug("creating acknowledge interaction request", "url", url)
 
 	requestBody := map[string]interface{}{
 		"type": 4,
@@ -113,10 +114,6 @@ func NewAcknowledgeInteraction(iId, iToken, botSecret, message string) (*http.Re
 	req.Header.Set("Authorization", "Bot "+botSecret)
 	req.Header.Set("User-Agent", "DiscordBot (discord-bot.garrison-stauffer.com, 0.0.1)")
 	req.Header.Set("Content-Type", "application/json")
-
-	if err != nil {
-		return nil, err
-	}
 
 	return req, nil
 }

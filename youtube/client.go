@@ -3,7 +3,7 @@ package youtube
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 )
@@ -37,8 +37,7 @@ func NewClient(client *http.Client, apiToken string) Client {
 }
 
 func (c *clientImpl) IsMusicVideo(ytUrl string) (bool, error) {
-	// parse video id from url
-	log.Println(ytUrl)
+	slog.Debug("checking if URL is music video", "url", ytUrl)
 	url, err := url.Parse(ytUrl)
 	if err != nil {
 		return false, err
@@ -48,7 +47,7 @@ func (c *clientImpl) IsMusicVideo(ytUrl string) (bool, error) {
 	if !ok || len(vId) != 1 {
 		return false, fmt.Errorf("unable to parse video id from %s", ytUrl)
 	}
-	log.Printf("%v", vId[0])
+	slog.Debug("extracted video ID", "video_id", vId[0])
 
 	resp, err := c.client.Get(fmt.Sprintf("https://youtube.googleapis.com/youtube/v3/videos?part=snippet&id=%s&key=%s", vId[0], c.apiToken))
 	if err != nil {
@@ -66,6 +65,8 @@ func (c *clientImpl) IsMusicVideo(ytUrl string) (bool, error) {
 	}
 
 	category := response.Items[0].Snippet.Category
+	isMusic := category == "10"
+	slog.Debug("video category check", "video_id", vId[0], "category", category, "is_music", isMusic)
 
-	return category == "10", nil
+	return isMusic, nil
 }
