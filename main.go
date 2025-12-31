@@ -1,9 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,25 +18,32 @@ import (
 )
 
 func main() {
-	log.Println("Started the server")
+	// Configure structured logging
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	slog.SetDefault(logger)
+
+	slog.Info("starting discord bot server")
 	serverComplete := make(chan error, 1)
-	//_ = context.Background()
+	ctx := context.Background()
 
 	var srv *http.Server
 	go func() {
 		mx := http.NewServeMux()
 
-		fmt.Println("port used is ", environment.BindPort())
+		port := environment.BindPort()
+		slog.Info("http server starting", "port", port)
 		srv = &http.Server{
-			Addr:    fmt.Sprintf(":%s", environment.BindPort()),
+			Addr:    fmt.Sprintf(":%s", port),
 			Handler: mx,
 		}
 		mx.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-			log.Println("Received message on /ping")
+			slog.Info("received ping request")
 			io.WriteString(w, "pong")
 		})
 		mx.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
-			log.Println("Received message on /healthcheck")
+			slog.Info("received healthcheck request")
 			w.WriteHeader(200)
 		})
 
@@ -43,13 +51,12 @@ func main() {
 		serverComplete <- err
 	}()
 
-	fmt.Println("Starting websocket")
+	slog.Info("initializing discord websocket connection")
 
 	messages := make(chan gateway.Message, 4)
 	botClient := discord.NewClient(
 		discord.NewConfig(
 			"wss://gateway.discord.gg/",
-			//"wss://gateway-us-east1-c.discord.gg",
 			environment.BotSecret(),
 		),
 		messages,
@@ -63,13 +70,11 @@ func main() {
 		environment.YtApiKey(),
 	)
 
-	isVid, err := ytClient.IsMusicVideo("https://www.youtube.com/watch?v=ldN9fNhZcsQ")
+	err := botClient.Start()
 	if err != nil {
-		panic(err)
+		slog.Error("failed to start bot client", "error", err)
+		os.Exit(1)
 	}
-	println(isVid)
-
-	err = botClient.Start()
 
 	application := app.New(botClient, ytClient, environment.BotSecret())
 
@@ -77,29 +82,24 @@ func main() {
 		for {
 			select {
 			case msg := <-messages:
-				err := application.Handle(msg)
-				if err != nil {
-					log.Printf("error processing message from channel %v", err)
+				if err := application.Handle(msg); err != nil {
+					slog.Error("error processing message from channel", "error", err)
 				}
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()
 
-	if err != nil {
-		log.Fatalf("could not start bot client: %v", err)
-	}
-
 	select {
 	case <-interrupt:
-		log.Println("received interrupt, starting to shut down")
-		err := botClient.Shutdown()
-		if err != nil {
-			log.Printf("error shutting down bot client: %v", err)
+		slog.Info("received interrupt signal, starting graceful shutdown")
+		if err := botClient.Shutdown(); err != nil {
+			slog.Error("error shutting down bot client", "error", err)
 		}
 
-		err = srv.Close()
-		if err != nil {
-			log.Printf("error shutting down http server: %v", err)
+		if err := srv.Close(); err != nil {
+			slog.Error("error shutting down http server", "error", err)
 		}
 
 		select {
@@ -107,6 +107,6 @@ func main() {
 		case <-time.After(time.Second):
 			return
 		}
-		log.Println("shutdown complete")
+		slog.Info("shutdown complete")
 	}
 }

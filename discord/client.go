@@ -3,12 +3,13 @@ package discord
 import (
 	"encoding/json"
 	"fmt"
-	"garrison-stauffer.com/discord-bot/discord/gateway"
-	"garrison-stauffer.com/discord-bot/discord/gateway/intents"
-	"log"
+	"log/slog"
 	"runtime/debug"
 	"sync"
 	"time"
+
+	"garrison-stauffer.com/discord-bot/discord/gateway"
+	"garrison-stauffer.com/discord-bot/discord/gateway/intents"
 )
 
 // Client is a wrapper around the
@@ -55,7 +56,7 @@ func (c *clientImpl) Start() error {
 		if c.state != ClientAwaitingStart {
 			return fmt.Errorf("client already started")
 		}
-		log.Println("starting client")
+		slog.Info("starting discord client")
 
 		c.session = newSession(c, c.reconnect)
 		err := c.session.Start()
@@ -76,34 +77,34 @@ func (c *clientImpl) Start() error {
 }
 
 func (c *clientImpl) locked(body func() error) error {
-	log.Println("attempting to acquire lock, dumping stacktrace")
+	slog.Debug("attempting to acquire client lock")
 	debug.PrintStack()
 
 	c.mux.Lock()
 	defer func() {
 		c.mux.Unlock()
-		log.Println("freed the lock, dumping stacktrace")
+		slog.Debug("released client lock")
 		debug.PrintStack()
 	}()
 
-	log.Println("acquired lock, dumping stacktrace")
+	slog.Debug("acquired client lock")
 	debug.PrintStack()
 
 	return body()
 }
 
 func (c *clientImpl) Shutdown() error {
-	log.Printf("Currently shutting down the client, current state is %v\n", c.state)
+	slog.Info("shutting down discord client", "state", c.state)
 	return c.locked(func() error {
 		if c.state == ClientClosed {
 			return fmt.Errorf("cannot close client that's already started closing (current state %v)", c.state)
 		}
-		log.Println("shutting down")
+		slog.Info("executing shutdown")
 		c.state = ClientClosed
 		_ = c.session.Stop()
 		close(c.receivedMessages)
 		close(c.outgoingMessages)
-		log.Println("finished shutting down")
+		slog.Info("shutdown complete")
 
 		return nil
 	})
@@ -115,14 +116,14 @@ func (c *clientImpl) readMessages() {
 		select {
 		case msg, ok := <-c.receivedMessages:
 			if !ok {
-				log.Println("channel is closed")
+				slog.Info("message channel closed")
 				done = true
 			}
-			fmt.Println(fmt.Sprintf("msg %v", msg))
+			slog.Debug("received message", "opcode", msg.OpCode)
 			err := c.handle(msg)
 			if err != nil {
 				data, _ := json.Marshal(msg)
-				log.Printf("error handling message %s", string(data))
+				slog.Error("error handling message", "error", err, "message", string(data))
 			}
 		}
 
@@ -137,10 +138,10 @@ func (c *clientImpl) readMessages() {
 func (c *clientImpl) reconnect() {
 	err := c.locked(func() error {
 		if c.state != ClientDisconnected {
-			log.Printf("cannot reconnect when client state is %v\n", c.state)
+			slog.Warn("cannot reconnect in current state", "state", c.state)
 		}
 
-		log.Println("reconnecting client")
+		slog.Info("reconnecting discord client")
 
 		// hack: reset sequence + reconnect URL to skip reconnects
 		c.gatewayConfig.sequence = nil
@@ -162,15 +163,15 @@ func (c *clientImpl) reconnect() {
 
 		c.session = sess
 		c.state = ClientConnected
-		log.Println("finished reconnecting")
+		slog.Info("reconnection successful")
 
 		return nil
 	})
 
 	if err != nil {
-		log.Printf("error reconnecting: %v\n", err)
+		slog.Error("error reconnecting", "error", err)
 	} else {
-		log.Println("new client connected")
+		slog.Info("new client connected")
 	}
 }
 
@@ -181,9 +182,9 @@ func (c *clientImpl) Send(msg gateway.Message) error {
 
 func (c *clientImpl) handle(msg gateway.Message) error {
 	if msg.Type != nil {
-		log.Printf("handling message %d, %v\n", msg.OpCode, *msg.Type)
+		slog.Debug("handling message", "opcode", msg.OpCode, "type", *msg.Type)
 	} else {
-		log.Printf("handling message %d, %v\n", msg.OpCode, msg.Type)
+		slog.Debug("handling message", "opcode", msg.OpCode)
 	}
 
 	if msg.SequenceId != nil {
@@ -191,7 +192,6 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 	}
 	switch msg.OpCode {
 	case gateway.OpHello:
-		// I need to parse the Hello message from this? for now just read the json map
 		requestedIntervalMs, ok := (*msg.Event)["heartbeat_interval"].(float64)
 		if !ok {
 			return fmt.Errorf("could not get the heart_beat interval from %v", msg)
@@ -201,20 +201,20 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 			msg := gateway.NewHeartbeat(c.gatewayConfig.sequence)
 			err := c.Send(*msg)
 			if err != nil {
-				log.Printf("error writing initial heartbeat %v\n", err)
+				slog.Error("error writing initial heartbeat", "error", err)
 				return
 			}
 
 			// start off heartbeater in the background that can be stopped on disconnect
 			delay := int64(requestedIntervalMs * .87)
-			log.Printf("Kicking off heartbeater with interval: %d\n", delay)
+			slog.Info("starting heartbeater", "interval_ms", delay)
 			go c.heartbeater.Start(time.Duration(delay) * time.Millisecond)
 
 			botIntents := intents.BuildIntentPermissions(intents.VoiceStatus, intents.Guilds, intents.GuildMembers, intents.GuildMessageReactions, intents.GuildPresence, intents.GuildMessages, intents.MessageContent)
 			msg = gateway.NewIdentify(botIntents, c.config.botSecretToken)
 			err = c.Send(*msg)
 			if err != nil {
-				log.Printf("error writing identify message %v\n", err)
+				slog.Error("error writing identify message", "error", err)
 				return
 			}
 		}()
@@ -222,13 +222,13 @@ func (c *clientImpl) handle(msg gateway.Message) error {
 	case gateway.OpHeartbeatAck:
 		return nil
 	case gateway.OpReconnect:
-		log.Println("received reconnect, going to stop current session and rejoin in 5s")
+		slog.Info("received reconnect opcode, stopping current session")
 		_ = c.session.Stop()
 		time.Sleep(5 * time.Second)
 		c.reconnect()
 		return nil
 	case gateway.OpInvalidSession:
-		log.Println("received invalid session, going to stop current session and rejoin in 5s")
+		slog.Info("received invalid session, stopping current session")
 		_ = c.session.Stop()
 		time.Sleep(5 * time.Second)
 		c.reconnect()

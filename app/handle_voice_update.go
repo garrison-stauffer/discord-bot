@@ -2,7 +2,7 @@ package app
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"garrison-stauffer.com/discord-bot/discord/api"
@@ -92,8 +92,7 @@ func (a *App) resolveChangeAndSendMessage(msg api.VoiceState, guild *Guild, user
 		message = fmt.Sprintf("%s disconnected from %s", username, oldChannelInfo.Name)
 	}
 
-	log.Println("Uhhhhh " + msg.GuildId)
-	sendChannel := resolveVoiceChannelId(msg.GuildId)
+	sendChannel := voiceLogsChannelIdForGuild(msg.GuildId)
 	if sendChannel == "" {
 		return fmt.Errorf("could not resolve channel to send to for this voice update")
 	}
@@ -101,17 +100,18 @@ func (a *App) resolveChangeAndSendMessage(msg api.VoiceState, guild *Guild, user
 	req, _ := api.NewMessage(sendChannel, a.botSecret, message)
 	_, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("error while sending a voice update message %v\n", err)
+		slog.Error("error sending voice update message", "error", err)
 		return err
 	}
 
+	slog.Info("sent voice update message", "guild_id", msg.GuildId, "user", username, "message", message)
 	return nil
 }
 
 const mumble = "1023753903994572820"
 const testServer = "663183295818760213"
 
-func resolveVoiceChannelId(guildId string) string {
+func voiceLogsChannelIdForGuild(guildId string) string {
 	switch guildId {
 	case mumble:
 		return "1056472933314334800"
