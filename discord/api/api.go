@@ -117,3 +117,85 @@ func NewAcknowledgeInteraction(iId, iToken, botSecret, message string) (*http.Re
 
 	return req, nil
 }
+
+func NewListGuildChannels(gId, botSecret string) (*http.Request, error) {
+	url := fmt.Sprintf("%s/guilds/%s/channels", "https://discord.com/api", gId)
+	slog.Debug("creating list guild channels request", "url", url)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bot "+botSecret)
+	req.Header.Set("User-Agent", "DiscordBot (discord-bot.garrison-stauffer.com, 0.0.1)")
+	req.Header.Set("Content-Type", "application/json")
+
+	return req, nil
+}
+
+type reqOption func(req *http.Request)
+
+func listMessagesBefore(id string) func(req *http.Request) {
+	return func(req *http.Request) {
+		req.URL.RawQuery = fmt.Sprintf("before=%s", id)
+	}
+}
+
+func NewListMessages(cId, botSecret string, opts ...reqOption) (*http.Request, error) {
+	url := fmt.Sprintf("%s/channels/%s/messages", "https://discord.com/api", cId)
+	slog.Debug("creating list messages request", "url", url)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bot "+botSecret)
+	req.Header.Set("User-Agent", "DiscordBot (discord-bot.garrison-stauffer.com, 0.0.1)")
+	req.Header.Set("Content-Type", "application/json")
+
+	for _, opt := range opts {
+		opt(req)
+	}
+
+	return req, nil
+}
+
+func NewListGuildMembers(gId, botSecret string, opts ...reqOption) (*http.Request, error) {
+	url := fmt.Sprintf("%s/guilds/%s/members", "https://discord.com/api", gId)
+	slog.Debug("creating list guild members request", "url", url)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bot "+botSecret)
+	req.Header.Set("User-Agent", "DiscordBot (discord-bot.garrison-stauffer.com, 0.0.1)")
+	req.Header.Set("Content-Type", "application/json")
+	for _, opt := range opts {
+		opt(req)
+	}
+
+	return req, nil
+}
+
+func NewListMessageReactions(cId, mId, react, botSecret string, opts ...reqOption) (*http.Request, error) {
+	url := fmt.Sprintf("%s/channels/%s/messages/%s/reactions/%s", "https://discord.com/api", cId, mId, react)
+	slog.Debug("creating list message reactions request", "url", url)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bot "+botSecret)
+	req.Header.Set("User-Agent", "DiscordBot (discord-bot.garrison-stauffer.com, 0.0.1)")
+	req.Header.Set("Content-Type", "application/json")
+	for _, opt := range opts {
+		opt(req)
+	}
+
+	return req, nil
+}
