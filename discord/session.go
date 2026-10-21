@@ -124,6 +124,7 @@ func (s *sessionImpl) startHandlingMessages() {
 	for {
 		select {
 		case msg := <-s.client.outgoingMessages:
+			// TODO: this should probably be cleaned up
 			slog.Debug("sending outgoing message", "opcode", msg.OpCode)
 			err := s.SendMessage(msg)
 			if err != nil {
